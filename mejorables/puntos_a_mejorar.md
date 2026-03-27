@@ -114,3 +114,10 @@ Debe verse como un agente de acompanamiento para la convivencia entre:
 
 - Refinar todos los documentos de tool actions para que las respuestas JSON sigan un mismo contrato comun y consistente en todas las funciones del agente.
 - Convertir las propuestas documentales de funciones Python en codigo real dentro de una estructura tecnica del proyecto, por ejemplo `app/tools/` o una organizacion equivalente.
+
+## 11. Posibles mejoras futuras para memoria del hogar
+
+- Mantener por ahora la presencia y permanencia de las personas del hogar dentro de la tabla `hogar_personas`, usando campos como permanencia en casa, horario aproximado, nivel de participacion y observaciones, sin llevarlo todavia a una tabla separada por franjas horarias o dias.
+- Incluir relacion entre recursos del hogar y mascotas especificas, porque aunque existan recursos compartidos tambien hay preferencias, usos o apropiaciones individuales de ciertos espacios, objetos o juguetes por parte de algunas mascotas.
+- Incluir desde el inicio un modelo de interacciones que permita multiples mascotas y multiples personas en una misma interaccion, especialmente para casos como conflictos, juegos, rutinas compartidas o situaciones donde intervienen varios integrantes del hogar.
+- Definir en la implementacion real una logica de resolucion previa para evitar duplicados de personas del hogar antes de usar `registrar_persona_hogar`, y decidir si esa validacion vive en una tool adicional, en una busqueda previa o dentro de la propia funcion de registro.
