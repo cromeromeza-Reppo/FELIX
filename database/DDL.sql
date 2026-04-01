@@ -49,53 +49,10 @@ CREATE TABLE IF NOT EXISTS mascota_condiciones_salud (
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS mascota_medicamentos (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    mascota_id BIGINT UNSIGNED NOT NULL,
-    nombre_medicamento VARCHAR(150) NOT NULL,
-    motivo TEXT NULL,
-    dosis VARCHAR(120) NULL,
-    frecuencia VARCHAR(120) NULL,
-    via_administracion VARCHAR(80) NULL,
-    fecha_inicio DATE NULL,
-    fecha_fin DATE NULL,
-    vigente BOOLEAN NOT NULL DEFAULT TRUE,
-    recetado_por VARCHAR(150) NULL,
-    notas TEXT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_medicamentos_mascota_id (mascota_id),
-    INDEX idx_medicamentos_vigente (vigente),
-    CONSTRAINT fk_medicamentos_mascota
-        FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
-        ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS mascota_tratamientos (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    mascota_id BIGINT UNSIGNED NOT NULL,
-    tipo_tratamiento VARCHAR(120) NOT NULL,
-    descripcion TEXT NULL,
-    objetivo TEXT NULL,
-    fecha_inicio DATE NULL,
-    fecha_fin DATE NULL,
-    vigente BOOLEAN NOT NULL DEFAULT TRUE,
-    responsable VARCHAR(150) NULL,
-    notas TEXT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_tratamientos_mascota_id (mascota_id),
-    INDEX idx_tratamientos_vigente (vigente),
-    CONSTRAINT fk_tratamientos_mascota
-        FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
-        ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS mascota_eventos_salud (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     mascota_id BIGINT UNSIGNED NOT NULL,
+    condicion_id BIGINT UNSIGNED NULL,
     tipo_evento VARCHAR(100) NOT NULL,
     fecha_evento DATE NULL,
     motivo_consulta TEXT NULL,
@@ -110,15 +67,84 @@ CREATE TABLE IF NOT EXISTS mascota_eventos_salud (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX idx_eventos_salud_mascota_id (mascota_id),
+    INDEX idx_eventos_salud_condicion_id (condicion_id),
     INDEX idx_eventos_salud_fecha (fecha_evento),
     CONSTRAINT fk_eventos_salud_mascota
         FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_eventos_salud_condicion
+        FOREIGN KEY (condicion_id) REFERENCES mascota_condiciones_salud(id)
         ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS mascota_medicamentos (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    mascota_id BIGINT UNSIGNED NOT NULL,
+    condicion_id BIGINT UNSIGNED NULL,
+    evento_salud_id BIGINT UNSIGNED NULL,
+    nombre_medicamento VARCHAR(150) NOT NULL,
+    motivo TEXT NULL,
+    dosis VARCHAR(120) NULL,
+    frecuencia VARCHAR(120) NULL,
+    via_administracion VARCHAR(80) NULL,
+    fecha_inicio DATE NULL,
+    fecha_fin DATE NULL,
+    vigente BOOLEAN NOT NULL DEFAULT TRUE,
+    recetado_por VARCHAR(150) NULL,
+    notas TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_medicamentos_mascota_id (mascota_id),
+    INDEX idx_medicamentos_condicion_id (condicion_id),
+    INDEX idx_medicamentos_evento_salud_id (evento_salud_id),
+    INDEX idx_medicamentos_vigente (vigente),
+    CONSTRAINT fk_medicamentos_mascota
+        FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_medicamentos_condicion
+        FOREIGN KEY (condicion_id) REFERENCES mascota_condiciones_salud(id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_medicamentos_evento_salud
+        FOREIGN KEY (evento_salud_id) REFERENCES mascota_eventos_salud(id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS mascota_tratamientos (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    mascota_id BIGINT UNSIGNED NOT NULL,
+    condicion_id BIGINT UNSIGNED NULL,
+    evento_salud_id BIGINT UNSIGNED NULL,
+    tipo_tratamiento VARCHAR(120) NOT NULL,
+    descripcion TEXT NULL,
+    objetivo TEXT NULL,
+    fecha_inicio DATE NULL,
+    fecha_fin DATE NULL,
+    vigente BOOLEAN NOT NULL DEFAULT TRUE,
+    responsable VARCHAR(150) NULL,
+    notas TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_tratamientos_mascota_id (mascota_id),
+    INDEX idx_tratamientos_condicion_id (condicion_id),
+    INDEX idx_tratamientos_evento_salud_id (evento_salud_id),
+    INDEX idx_tratamientos_vigente (vigente),
+    CONSTRAINT fk_tratamientos_mascota
+        FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_tratamientos_condicion
+        FOREIGN KEY (condicion_id) REFERENCES mascota_condiciones_salud(id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_tratamientos_evento_salud
+        FOREIGN KEY (evento_salud_id) REFERENCES mascota_eventos_salud(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS mascota_documentos_salud (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     mascota_id BIGINT UNSIGNED NOT NULL,
+    condicion_id BIGINT UNSIGNED NULL,
     evento_salud_id BIGINT UNSIGNED NULL,
     tipo_documento VARCHAR(100) NOT NULL,
     nombre_archivo VARCHAR(255) NULL,
@@ -129,10 +155,14 @@ CREATE TABLE IF NOT EXISTS mascota_documentos_salud (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX idx_documentos_salud_mascota_id (mascota_id),
+    INDEX idx_documentos_salud_condicion_id (condicion_id),
     INDEX idx_documentos_salud_evento_id (evento_salud_id),
     CONSTRAINT fk_documentos_salud_mascota
         FOREIGN KEY (mascota_id) REFERENCES mascotas(id)
         ON DELETE CASCADE,
+    CONSTRAINT fk_documentos_salud_condicion
+        FOREIGN KEY (condicion_id) REFERENCES mascota_condiciones_salud(id)
+        ON DELETE SET NULL,
     CONSTRAINT fk_documentos_salud_evento
         FOREIGN KEY (evento_salud_id) REFERENCES mascota_eventos_salud(id)
         ON DELETE SET NULL

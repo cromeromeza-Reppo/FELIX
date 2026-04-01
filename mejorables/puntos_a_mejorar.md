@@ -1,4 +1,4 @@
-# Puntos a mejorar
+﻿# Puntos a mejorar
 
 ## 1. Grupo familiar y convivencia humana
 
@@ -112,8 +112,12 @@ Debe verse como un agente de acompanamiento para la convivencia entre:
 
 ## 10. Pendientes para cerrar al final cuando esten todas las funciones
 
+- Definir una funcion propia para crear o definir el hogar dentro del paso a paso, de modo que `hogar_id` deje de resolverse temporalmente con valores aleatorios en pruebas.
 - Refinar todos los documentos de tool actions para que las respuestas JSON sigan un mismo contrato comun y consistente en todas las funciones del agente.
+- Evaluar agregar en todas las tools un campo adicional como msg_usuario, separado del msg tecnico, para que Felix pueda responder de forma amable y clara cuando ocurra un error, por ejemplo indicando que hubo un problema y que conviene intentar de nuevo mas tarde.
 - Convertir las propuestas documentales de funciones Python en codigo real dentro de una estructura tecnica del proyecto, por ejemplo `app/tools/` o una organizacion equivalente.
+- Reemplazar la generacion temporal de `hogar_id` aleatorio en pruebas por un `hogar_id` asignado en la creacion de cuenta y validado durante el login, para que Felix opere siempre dentro del hogar autenticado.
+- DiseÃ±ar el flujo multimodal de salud para que Felix pueda leer formulas medicas, ordenes y examenes, extraer informacion util y confirmar con el usuario antes de crear o actualizar medicamentos, tratamientos, eventos y documentos asociados.
 
 ## 11. Posibles mejoras futuras para memoria del hogar
 
@@ -121,3 +125,5 @@ Debe verse como un agente de acompanamiento para la convivencia entre:
 - Incluir relacion entre recursos del hogar y mascotas especificas, porque aunque existan recursos compartidos tambien hay preferencias, usos o apropiaciones individuales de ciertos espacios, objetos o juguetes por parte de algunas mascotas.
 - Incluir desde el inicio un modelo de interacciones que permita multiples mascotas y multiples personas en una misma interaccion, especialmente para casos como conflictos, juegos, rutinas compartidas o situaciones donde intervienen varios integrantes del hogar.
 - Definir en la implementacion real una logica de resolucion previa para evitar duplicados de personas del hogar antes de usar `registrar_persona_hogar`, y decidir si esa validacion vive en una tool adicional, en una busqueda previa o dentro de la propia funcion de registro.
+
+
