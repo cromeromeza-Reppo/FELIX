@@ -127,3 +127,12 @@ Debe verse como un agente de acompanamiento para la convivencia entre:
 - Definir en la implementacion real una logica de resolucion previa para evitar duplicados de personas del hogar antes de usar `registrar_persona_hogar`, y decidir si esa validacion vive en una tool adicional, en una busqueda previa o dentro de la propia funcion de registro.
 
 
+
+## 12. Pendientes de runtime para coherencia entre hogar, mascota y memoria
+
+- Definir una capa previa de resolucion de equivalencias antes de crear personas, espacios o recursos del hogar, para reducir duplicados conversacionales como `mama`, `mi mama`, `sala`, `la sala` o `balcon` dentro del mismo hogar activo.
+- Establecer una regla operativa de reutilizacion de IDs cuando la equivalencia sea suficientemente alta, y una sola pregunta breve cuando exista ambiguedad real antes de crear una entidad nueva.
+- Garantizar estabilidad del `hogar_id` durante pruebas para una misma mascota, sesion o usuario, evitando que perfil, salud y memoria del hogar queden asociados a hogares distintos por generacion aleatoria.
+- Revisar que la logica temporal de `hogar_id` aleatorio en el punto 1 no rompa consistencia entre `guardar_mascota`, tools de salud y tools de memoria del hogar mientras no exista aun un hogar autenticado real.
+- Definir logs de decision para deduplicacion y reutilizacion de entidades, de modo que quede trazabilidad de cuando el sistema decide actualizar una persona, espacio o recurso existente y cuando decide crear uno nuevo.
+- Validar en implementacion que la regla de una sola repregunta se cumpla de verdad en runtime y no derive en cadenas de preguntas por falta de contexto.
