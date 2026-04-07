@@ -12,7 +12,7 @@ Félix debe construir la memoria del hogar por capas, de forma conversacional y 
 - observaciones generales del contexto
 
 La lógica general es consistente con el punto 1:
-- `guardar_hogar_contexto(...)` usa un `hogar_id` ya resuelto por el sistema, no crea hogares y sirve solo para completar o actualizar un hogar existente
+- `guardar_hogar_contexto(...)` puede crear hogar cuando `hogar_id` viene en `null`, o completar y actualizar un hogar existente cuando `hogar_id` viene con valor
 - en `persona`, `espacio`, `recurso`, `interacción` y `observación`, si el ID principal viene en `null`, la función crea
 - si el ID principal viene con valor, la misma función actualiza
 - en una actualización, solo se cambian los campos cuyo valor no sea `None`
@@ -27,7 +27,7 @@ Todas las funciones abren y cierran su propia conexión MySQL, usan `mysql.conne
 ## 1. Tool action `guardar_hogar_contexto`
 
 **Propósito**
-Completar o actualizar el contexto general de un hogar ya existente. Esta función no crea hogares.
+Crear un hogar cuando `hogar_id` viene en `null`, o completar y actualizar un hogar existente cuando `hogar_id` viene con valor. Esta es la única función de hogar y no debe sentirse como un trámite técnico: sirve para resolver el hogar al inicio y también para enriquecerlo después con más contexto.
 
 ### JSON para OpenAI Responses API
 
@@ -38,7 +38,7 @@ Completar o actualizar el contexto general de un hogar ya existente. Esta funci�
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "hogar_id": { "type": "integer", "minimum": 1 },
+      "hogar_id": { "type": ["integer", "null"], "minimum": 1 },
       "nombre": { "type": ["string", "null"] },
       "tipo_vivienda": { "type": ["string", "null"] },
       "descripcion_general": { "type": ["string", "null"] },
@@ -79,45 +79,6 @@ def guardar_hogar_contexto(
     cursor = None
 
     try:
-        if not hogar_id:
-            res_json = json.dumps({
-                "ok": False,
-                "action": "error",
-                "hogar_id": hogar_id,
-                "campos_actualizados": [],
-                "msg": "Falta `hogar_id` para actualizar el contexto del hogar."
-            })
-            logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
-            return res_json
-
-        campos = {
-            "nombre": nombre,
-            "tipo_vivienda": tipo_vivienda,
-            "descripcion_general": descripcion_general,
-            "direccion_referencia": direccion_referencia,
-            "observaciones_contexto": observaciones_contexto,
-        }
-        updates = []
-        valores = []
-        campos_actualizados = []
-
-        for campo, valor in campos.items():
-            if valor is not None:
-                updates.append(f"{campo} = %s")
-                valores.append(valor)
-                campos_actualizados.append(campo)
-
-        if not updates:
-            res_json = json.dumps({
-                "ok": False,
-                "action": "error",
-                "hogar_id": hogar_id,
-                "campos_actualizados": [],
-                "msg": "No hay campos para actualizar en el hogar."
-            })
-            logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
-            return res_json
-
         conexion = mysql.connector.connect(
             host="localhost",
             user="felix",
@@ -126,30 +87,98 @@ def guardar_hogar_contexto(
         )
         cursor = conexion.cursor()
 
-        cursor.execute("SELECT id FROM hogares WHERE id = %s", (hogar_id,))
-        if not cursor.fetchone():
+        if hogar_id is None:
+            nombre_creacion = "Hogar principal" if nombre is None else nombre
+
+            q = """
+                INSERT INTO hogares (
+                    nombre,
+                    tipo_vivienda,
+                    descripcion_general,
+                    direccion_referencia,
+                    observaciones_contexto
+                ) VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(q, (
+                nombre_creacion,
+                tipo_vivienda,
+                descripcion_general,
+                direccion_referencia,
+                observaciones_contexto,
+            ))
+            conexion.commit()
+            hogar_id = cursor.lastrowid
+
+            campos_actualizados = ["nombre"]
+            for campo, valor in {
+                "tipo_vivienda": tipo_vivienda,
+                "descripcion_general": descripcion_general,
+                "direccion_referencia": direccion_referencia,
+                "observaciones_contexto": observaciones_contexto,
+            }.items():
+                if valor is not None:
+                    campos_actualizados.append(campo)
+
             res_json = json.dumps({
-                "ok": False,
-                "action": "error",
+                "ok": True,
+                "action": "created",
                 "hogar_id": hogar_id,
-                "campos_actualizados": [],
-                "msg": "El hogar indicado no existe. `guardar_hogar_contexto` no crea hogares nuevos."
+                "campos_actualizados": campos_actualizados,
+                "msg": "Hogar creado correctamente."
             })
-            logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
-            return res_json
+        else:
+            cursor.execute("SELECT id FROM hogares WHERE id = %s", (hogar_id,))
+            if not cursor.fetchone():
+                res_json = json.dumps({
+                    "ok": False,
+                    "action": "error",
+                    "hogar_id": hogar_id,
+                    "campos_actualizados": [],
+                    "msg": "El hogar indicado no existe."
+                })
+                logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
+                return res_json
 
-        valores.append(hogar_id)
-        q = f"UPDATE hogares SET {', '.join(updates)} WHERE id = %s"
-        cursor.execute(q, tuple(valores))
-        conexion.commit()
+            campos = {
+                "nombre": nombre,
+                "tipo_vivienda": tipo_vivienda,
+                "descripcion_general": descripcion_general,
+                "direccion_referencia": direccion_referencia,
+                "observaciones_contexto": observaciones_contexto,
+            }
+            updates = []
+            valores = []
+            campos_actualizados = []
 
-        res_json = json.dumps({
-            "ok": True,
-            "action": "updated",
-            "hogar_id": hogar_id,
-            "campos_actualizados": campos_actualizados,
-            "msg": "Contexto del hogar guardado correctamente."
-        })
+            for campo, valor in campos.items():
+                if valor is not None:
+                    updates.append(f"{campo} = %s")
+                    valores.append(valor)
+                    campos_actualizados.append(campo)
+
+            if not updates:
+                res_json = json.dumps({
+                    "ok": False,
+                    "action": "error",
+                    "hogar_id": hogar_id,
+                    "campos_actualizados": [],
+                    "msg": "No hay campos para actualizar en el hogar."
+                })
+                logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
+                return res_json
+
+            valores.append(hogar_id)
+            q = f"UPDATE hogares SET {', '.join(updates)} WHERE id = %s"
+            cursor.execute(q, tuple(valores))
+            conexion.commit()
+
+            res_json = json.dumps({
+                "ok": True,
+                "action": "updated",
+                "hogar_id": hogar_id,
+                "campos_actualizados": campos_actualizados,
+                "msg": "Contexto del hogar guardado correctamente."
+            })
     except mysql.connector.Error as error:
         logging.error(f"guardar_hogar_contexto: Error de base de datos: {error}")
         res_json = json.dumps({
@@ -168,6 +197,7 @@ def guardar_hogar_contexto(
     logging.info(f"guardar_hogar_contexto: Resultado JSON: {res_json}")
     return res_json
 ```
+
 
 ## 2. Tool action `guardar_persona_hogar`
 
@@ -1528,6 +1558,8 @@ def guardar_observacion_contexto_hogar(
     logging.info(f"guardar_observacion_contexto_hogar: Resultado JSON: {res_json}")
     return res_json
 ```
+
+
 
 
 
